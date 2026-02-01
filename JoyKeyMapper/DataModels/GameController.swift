@@ -199,8 +199,18 @@ class GameController {
 
             if config.keyCode >= 0 {
                 metaKeyEvent(config: config, keyDown: true)
-                
-                if let systemKey = systemDefinedKey[Int(config.keyCode)] {
+
+                if config.keyCode == kVK_Function {
+                    let event = CGEvent(
+                        keyboardEventSource: source,
+                        virtualKey: CGKeyCode(config.keyCode),
+                        keyDown: true
+                    )
+                    var flags = CGEventFlags(rawValue: CGEventFlags.RawValue(config.modifiers))
+                    flags.insert(.maskSecondaryFn)
+                    event?.flags = flags
+                    event?.post(tap: .cghidEventTap)
+                } else if let systemKey = systemDefinedKey[Int(config.keyCode)] {
                     let mousePos = NSEvent.mouseLocation
                     let flags = NSEvent.ModifierFlags(rawValue: 0x0a00)
                     let data1 = Int((systemKey << 16) | 0x0a00)
@@ -256,7 +266,16 @@ class GameController {
             let source = CGEventSource(stateID: .hidSystemState)
             
             if config.keyCode >= 0 {
-                if let systemKey = systemDefinedKey[Int(config.keyCode)] {
+                if config.keyCode == kVK_Function {
+                    let event = CGEvent(
+                        keyboardEventSource: source,
+                        virtualKey: CGKeyCode(config.keyCode),
+                        keyDown: false
+                    )
+                    let flags = CGEventFlags(rawValue: CGEventFlags.RawValue(config.modifiers))
+                    event?.flags = flags
+                    event?.post(tap: .cghidEventTap)
+                } else if let systemKey = systemDefinedKey[Int(config.keyCode)] {
                     let mousePos = NSEvent.mouseLocation
                     let flags = NSEvent.ModifierFlags(rawValue: 0x0b00)
                     let data1 = Int((systemKey << 16) | 0x0b00)
