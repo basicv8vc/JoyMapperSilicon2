@@ -24,6 +24,7 @@ let keyCodeList: [Int] = [
     kVK_RightShift,
     kVK_RightOption,
     kVK_RightControl,
+    kVK_Function,
     kVK_F1,
     kVK_F2,
     kVK_F3,
@@ -148,7 +149,8 @@ let keyCells: [NSComboBoxCell] = {
 class KeyConfigComboBox: NSComboBox {
     var configDelegate: KeyConfigComboBoxDelegate?
     
-    var monitor: Any?
+    var keyDownMonitor: Any?
+    var flagsChangedMonitor: Any?
     
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -159,17 +161,34 @@ class KeyConfigComboBox: NSComboBox {
         self.addItems(withObjectValues: keyCells)
     }
     
+    private func clearMonitors() {
+        if let monitor = self.keyDownMonitor {
+            self.keyDownMonitor = nil
+            NSEvent.removeMonitor(monitor)
+        }
+        if let monitor = self.flagsChangedMonitor {
+            self.flagsChangedMonitor = nil
+            NSEvent.removeMonitor(monitor)
+        }
+    }
+    
     override func becomeFirstResponder() -> Bool {
         self.stringValue = ""
-        self.monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+        self.keyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
             guard let _self = self else { return event }
 
             _self.window?.makeFirstResponder(nil)
             _self.configDelegate?.setKeyCode(event.keyCode)
-            if let monitor = _self.monitor {
-                _self.monitor = nil
-                NSEvent.removeMonitor(monitor)
-            }
+            _self.clearMonitors()
+            return nil
+        })
+        self.flagsChangedMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged, handler: { [weak self] event in
+            guard let _self = self else { return event }
+            guard event.keyCode == kVK_Function else { return event }
+
+            _self.window?.makeFirstResponder(nil)
+            _self.configDelegate?.setKeyCode(event.keyCode)
+            _self.clearMonitors()
             return nil
         })
         return true

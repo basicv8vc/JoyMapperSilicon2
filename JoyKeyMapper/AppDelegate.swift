@@ -87,7 +87,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUserNoti
     }
 
     func updateControllersMenu() {
-        self.controllersMenu?.submenu?.removeAllItems()
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.updateControllersMenu()
+            }
+            return
+        }
+
+        guard let submenu = self.controllersMenu?.submenu else { return }
+        submenu.removeAllItems()
 
         self.controllers.forEach { controller in
             guard controller.controller?.isConnected ?? false else { return }
@@ -131,15 +139,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, UNUserNoti
             battery.isEnabled = false
             item.submenu?.addItem(battery)
             
-            self.controllersMenu?.submenu?.addItem(item)
+            submenu.addItem(item)
         }
         
-        if let itemCount = self.controllersMenu?.submenu?.items.count, itemCount <= 0 {
+        if submenu.items.count <= 0 {
             let item = NSMenuItem()
             let noControllers = NSLocalizedString("No controllers connected", comment: "No controllers connected")
             item.title = "(\(noControllers))"
             item.isEnabled = false
-            self.controllersMenu?.submenu?.addItem(item)
+            submenu.addItem(item)
         }
     }
     
